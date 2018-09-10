@@ -160,10 +160,24 @@ RUN if [ ${INSTALL_XDEBUG} = false -a ${INSTALL_BLACKFIRE} = true ]; then \
 ARG INSTALL_PHPREDIS=false
 
 RUN if [ ${INSTALL_PHPREDIS} = true ]; then \
-    # Install Php Redis Extension
-    printf "\n" | pecl install -o -f redis \
-    &&  rm -rf /tmp/pear \
-    &&  docker-php-ext-enable redis \
+  # Install the redis extension
+  if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
+    curl -L -o /tmp/redis.tar.gz "https://github.com/phpredis/phpredis/archive/4.1.1.tar.gz" ; \
+  else \
+    curl -L -o /tmp/redis.tar.gz "https://github.com/phpredis/phpredis/archive/4.1.1.tar.gz" ; \
+  fi && \
+  mkdir -p redis \
+    && tar -C redis -zxvf /tmp/redis.tar.gz --strip 1 \
+    && ( \
+        cd redis \
+        && phpize \
+        && ./configure \
+        && make \
+        && make install \
+    ) \
+    && rm -r redis \
+    && rm /tmp/redis.tar.gz \
+    && docker-php-ext-enable redis \
 ;fi
 
 ###########################################################################
