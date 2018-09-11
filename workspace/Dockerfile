@@ -38,7 +38,7 @@ ENV PGID ${PGID}
 
 # always run apt update when start and after add new source list, then clean up at end.
 RUN apt-get update -yqq && \
-    pecl channel-update pecl.php.net && \
+    #pecl channel-update pecl.php.net && \
     groupadd -g ${PGID} laradock && \
     useradd -u ${PUID} -g laradock -m laradock -G docker_env && \
     usermod -p "*" laradock
@@ -360,8 +360,25 @@ ARG INSTALL_PHPREDIS=false
 
 RUN if [ ${INSTALL_PHPREDIS} = true ]; then \
     # Install Php Redis extension
-    printf "\n" | pecl -q install -o -f redis && \
-    echo "extension=redis.so" >> /etc/php/${LARADOCK_PHP_VERSION}/mods-available/redis.ini && \
+    #printf "\n" | pecl -q install -o -f redis && \
+    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
+    curl -L -o /tmp/redis.tar.gz "https://github.com/phpredis/phpredis/archive/4.1.1.tar.gz" ; \
+  else \
+    curl -L -o /tmp/redis.tar.gz "https://github.com/phpredis/phpredis/archive/4.1.1.tar.gz" ; \
+  fi && \
+  mkdir -p redis \
+    && tar -C redis -zxvf /tmp/redis.tar.gz --strip 1 \
+    && ( \
+        cd redis \
+        && phpize \
+        && ./configure \
+        && make \
+        && make install \
+    ) \
+    && rm -r redis \
+    && rm /tmp/redis.tar.gz \
+    #&& docker-php-ext-enable redis \
+    && echo "extension=redis.so" >> /etc/php/${LARADOCK_PHP_VERSION}/mods-available/redis.ini && \
     phpenmod redis \
 ;fi
 
